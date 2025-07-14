@@ -8,36 +8,49 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Connect to server
-cnx = mysql.connector.connect(
-    host="localhost",
-    port=3306,
-    user=os.getenv('user'),
-    password=os.getenv('pass')
-)
-
-cur = cnx.cursor()
-cur.execute("CREATE DATABASE IF NOT EXISTS flask_crud")
-cur.execute("USE flask_crud")
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        email VARCHAR(100) NOT NULL
+def get_db_connection():
+    connection = mysql.connector.connect(
+        host="localhost",
+        port=3306,
+        user=os.getenv('USER'),
+        password=os.getenv('PASS'),
+        database="flask_crud"
     )
-""")
+    return connection
 
-# inset one test record
-# cur.execute("INSERT INTO users (name, email) VALUES (%s, %s)",
-#             ("John Doe", "test@gmail.com"))
-# commit the changes
-# cnx.commit()
+# Initialize database on first run
+def init_db():
+    connection = mysql.connector.connect(
+        host="localhost",
+        port=3306,
+        user=os.getenv('USER'),
+        password=os.getenv('PASS')
+    )
+    cursor = connection.cursor()
+    cursor.execute("CREATE DATABASE IF NOT EXISTS flask_crud")
+    cursor.execute("USE flask_crud")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            email VARCHAR(100) NOT NULL
+        )
+    """)
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+init_db()
 
 
 @app.route("/")
 def home():
-    cur.execute("SELECT * FROM users ORDER BY id DESC")
-    users = cur.fetchall()
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM users ORDER BY id DESC")
+    users = cursor.fetchall()
+    cursor.close()
+    connection.close()
     return render_template('index.html', users=users)
 
 
@@ -51,27 +64,35 @@ def add_user():
     name = request.form.get('name')
     email = request.form.get('email')
     if name and email:
-        cur.execute(
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
             "INSERT INTO users (name, email) VALUES (%s, %s)", (name, email))
-        cnx.commit()
-    return home()
-
-# route to delete a existing user
+        connection.commit()
+        cursor.close()
+        connection.close()
+    return redirect("/")
 
 
 @app.route("/delete/<int:id>")
 def delete_user(id):
-    cur.execute("DELETE FROM users WHERE id =%s", (id, ))
-    cnx.commit()
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM users WHERE id =%s", (id,))
+    connection.commit()
+    cursor.close()
+    connection.close()
     return redirect('/')
-
-# Update Existing User
 
 
 @app.route("/edit/<int:id>")
 def edit_user(id):
-    cur.execute("SELECT * FROM users WHERE id = %s", (id,))
-    user = cur.fetchone()
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = %s", (id,))
+    user = cursor.fetchone()
+    cursor.close()
+    connection.close()
     if user:
         return render_template("edituser.html", user=user)
     else:
@@ -83,11 +104,15 @@ def update_user(id):
     name = request.form.get('name')
     email = request.form.get('email')
     if name and email:
-        cur.execute(
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute(
             "UPDATE users SET name=%s, email=%s WHERE id=%s",
             (name, email, id)
         )
-        cnx.commit()
+        connection.commit()
+        cursor.close()
+        connection.close()
     return redirect('/')
 
 
