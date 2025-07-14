@@ -1,0 +1,25 @@
+<html>
+
+
+<body>
+
+<p>This is sum page</p> <br>
+
+<form action="/sum" method="post">
+    <input type="text" name="num1" placeholder="Enter first number">
+    <input type="text" name="num2" placeholder="Enter second number">
+    <button type="submit">Calculate Sum</button>
+</form>
+
+
+<br>
+sum of {{ num1 }} and {{ num2 }} is: {{ sum }}
+
+<br>
+
+
+
+<hr>
+<a href="/date">Click here to see current date and time</a>
+</body>
+</html>
